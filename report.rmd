@@ -1,0 +1,53 @@
+---
+output: html_document
+---
+
+* Data loading and cleaning
+
+The raw files are loaded and data cleaning drops the first 6 columns and the ones with NAs are dropped as well.
+
+```{r}
+submit <- read.csv("pml-testing.csv", na.strings=c("",NA))
+dataset <- read.csv("pml-training.csv", na.strings=c("",NA))
+
+dataset <- dataset[,-c(1:6)]
+submit <- submit[,-c(1:6)]
+
+dataset <- dataset[colSums(is.na(dataset)) == 0]
+submit <- dataset[colSums(is.na(dataset)) == 0]
+```
+
+* Split into training/testing sets
+
+The ratio is 60% for training and 40% for testing.
+
+```{r}
+library(caret)
+inTrain <- createDataPartition(y=dataset$classe,
+                               p=0.6, list=FALSE)
+
+training <- dataset[inTrain,]
+testing <- dataset[-inTrain,]
+```
+
+* Fitting model
+
+The model used for prediction is random forest. The reason why the direct call to the randomForest is implemented and not using the caret is due to performance reasons - the caret's one was not finishing within a reasonable amount of time.
+
+```{r}
+library(randomForest)
+modelFit <- randomForest(classe ~ ., data=training)
+pred <- predict(modelFit,testing)
+
+predTr <- predict(modelFit, training)
+```
+
+* Confusion Matrix
+
+```{r}
+confusionMatrix(data=pred, testing$classe)
+```
+
+* Out-of-sample error
+
+Given that the accuracy of the model is 99.68% on the test set, the out-of-sample error is 0.32%
